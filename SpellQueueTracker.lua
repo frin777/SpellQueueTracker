@@ -6,21 +6,23 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 
 local RC = LibStub("LibRangeCheck-3.0")
 
--- список спеллов с приоритетами и условиями
 local spellQueue = {
-    { id = 84963, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 4 }, buff = { id = 84963, time = 2 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" },
-    { id = 20271, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 35395, priority = 2, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
-    { id = 879, priority = 3, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png" },
-    { id = 85256, priority = 4, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
-    { id = 53385, priority = 0, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
+    { id = 84963, gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 2 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" },
+    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 35395, gcd = true, priority = 2, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
+    { id = 879, gcd = true, priority = 3, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png" },
+    { id = 85256, gcd = true, priority = 4, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
+    { id = 53385, gcd = true, priority = 0, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
 }
 
 local icons = {}
 local frame
 local enemiesCache = 0
 
--- настройки по умолчанию
 local defaults = { profile = { posX = 0, posY = 0 } }
 
 -------------------------------
@@ -54,7 +56,7 @@ end
 
 function SpellQueueTracker:OnEnable()
     frame = CreateFrame("Frame", "SpellQueueTrackerFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(220, 50)
+    frame:SetSize(400, 34)
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:SetClampedToScreen(true)
@@ -66,20 +68,41 @@ function SpellQueueTracker:OnEnable()
         insets = { left = 1, right = 1, top = 1, bottom = 1 }
     })
     frame:SetBackdropBorderColor(0, 0, 0, 1)
+    frame:SetFrameLevel(10)
 
-    for i = 1, #spellQueue do
-        local iconFrame = CreateFrame("Frame", nil, frame)
+    -- Создаем иконки
+    for i, spell in ipairs(spellQueue) do
+        local parent = frame
+        if spell.gcd == false then
+            parent = UIParent
+        end
+
+        local iconFrame = CreateFrame("Frame", nil, parent)
         iconFrame:SetSize(32, 32)
+
         if i == 1 then
-            iconFrame:SetPoint("LEFT", frame, "LEFT", 15, 0)
+            iconFrame:SetPoint("LEFT", frame, "LEFT", 1, 0)
         else
             iconFrame:SetPoint("LEFT", icons[i-1], "RIGHT", 10, 0)
         end
+
+        if spell.gcd == false then
+            iconFrame:SetFrameStrata("TOOLTIP")
+        else
+            iconFrame:SetFrameStrata("HIGH")
+        end
+
         local texture = iconFrame:CreateTexture(nil, "ARTWORK")
         texture:SetAllPoints()
         iconFrame.icon = texture
         iconFrame:Hide()
         icons[i] = iconFrame
+    end
+
+    -- Привязка оверлея к первой иконке
+    if GCDOverlay then
+        GCDOverlay:SetParent(icons[1])
+        GCDOverlay:SetPoint("CENTER", icons[1], "CENTER", 0, 0)
     end
 
     self:RestorePosition()
@@ -100,6 +123,7 @@ function SpellQueueTracker:OnDisable()
     if self.timerQueue then self:CancelTimer(self.timerQueue) end
     if self.timerEnemies then self:CancelTimer(self.timerEnemies) end
     if frame then frame:Hide() end
+    if GCDOverlay then GCDOverlay:Hide() end
 end
 
 -------------------------------
@@ -124,34 +148,30 @@ end
 -------------------------------
 
 local function CheckConditions(spell)
-    -- здоровье
     if spell.minHP or spell.maxHP then
         local hp = (UnitHealth("player") / UnitHealthMax("player")) * 100
         if spell.minHP and hp < spell.minHP then return false end
         if spell.maxHP and hp > spell.maxHP then return false end
     end
-    -- мана
     if spell.minMana then
         local mana = (UnitPower("player", 0) / UnitPowerMax("player", 0)) * 100
         if mana < spell.minMana then return false end
     end
-    -- holy power
     if spell.holyPower then
         local hpwr = UnitPower("player", Enum.PowerType.HolyPower or 9)
         if spell.holyPower.min and hpwr < spell.holyPower.min then return false end
         if spell.holyPower.max and hpwr > spell.holyPower.max then return false end
     end
-    -- враги
     if spell.Enemies and enemiesCache < (spell.Enemies.count or 1) then return false end
-    -- бафф
     if spell.buff then
         local buffName = GetSpellInfo(spell.buff.id)
         local i = 1
         while true do
-            local name, _, _, _, duration, expirationTime = UnitBuff("player", i)
+            local name = UnitBuff("player", i)
             if not name then break end
             if name == buffName then
                 if spell.buff.time then
+                    local _, _, _, _, _, expirationTime = UnitBuff("player", i)
                     if expirationTime - GetTime() > spell.buff.time then return false end
                 else
                     return false
@@ -160,7 +180,6 @@ local function CheckConditions(spell)
             i = i + 1
         end
     end
-    -- кастомное условие
     if spell.customCondition and type(spell.customCondition) == "function" then
         if not spell.customCondition() then return false end
     end
@@ -187,7 +206,7 @@ function SpellQueueTracker:UpdateQueue()
         end
 
         if not onCooldown and inRange and CheckConditions(spell) then
-            table.insert(available, { id = spell.id, prio = spell.priority, tex = spell.iconPath or defaultTex, custom = spell.iconPath and true or false })
+            table.insert(available, { id = spell.id, prio = spell.priority, tex = spell.iconPath or defaultTex, custom = spell.iconPath and true or false, gcd = spell.gcd })
         end
     end
 
@@ -199,8 +218,22 @@ function SpellQueueTracker:UpdateQueue()
             iconFrame.icon:SetTexture(spell.tex)
             iconFrame.icon:SetTexCoord(spell.custom and 0 or 0.08, spell.custom and 1 or 0.92, spell.custom and 0 or 0.08, spell.custom and 1 or 0.92)
             iconFrame:Show()
+    
+            -- Управление GCD overlay
+            if i == 1 and spell.gcd and GCDOverlay then
+                GCDOverlay:SetParent(iconFrame)
+                GCDOverlay:SetPoint("CENTER", iconFrame, "CENTER", 0, 0)
+                GCDOverlay:SetSize(iconFrame:GetWidth(), iconFrame:GetHeight())
+                GCDOverlay:Show()
+            end
         else
             iconFrame:Hide()
         end
     end
+    
+    local firstSpell = available[1]
+    if not firstSpell or not firstSpell.gcd then
+        if GCDOverlay then GCDOverlay:Hide() end
+    end
+  
 end
