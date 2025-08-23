@@ -7,16 +7,12 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 local RC = LibStub("LibRangeCheck-3.0")
 
 local spellQueue = {
-    { id = 84963, gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 2 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" },
-    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 20271, gcd = true, priority = 1, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
-    { id = 35395, gcd = true, priority = 2, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
-    { id = 879, gcd = true, priority = 3, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png" },
-    { id = 85256, gcd = true, priority = 4, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
-    { id = 53385, gcd = true, priority = 0, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
+    { id = 84963, name = 'Дознание',  gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 15, stacks = { min = 0, max = 2 }}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" },
+    { id = 20271, name = 'Правосудие', gcd = true, priority = 3, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 35395, name = 'Удар война Света', gcd = true, priority = 4, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
+    { id = 879, name = 'Экзорцизм', gcd = true, priority = 5, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png" },
+    { id = 85256, name = 'Вердикт храмовника', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
+    { id = 53385, name = 'Божественная буря', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
 }
 
 local icons = {}
@@ -148,41 +144,65 @@ end
 -------------------------------
 
 local function CheckConditions(spell)
+    -- Проверка HP
     if spell.minHP or spell.maxHP then
         local hp = (UnitHealth("player") / UnitHealthMax("player")) * 100
         if spell.minHP and hp < spell.minHP then return false end
         if spell.maxHP and hp > spell.maxHP then return false end
     end
+
+    -- Проверка маны
     if spell.minMana then
         local mana = (UnitPower("player", 0) / UnitPowerMax("player", 0)) * 100
         if mana < spell.minMana then return false end
     end
+
+    -- Проверка Holy Power
     if spell.holyPower then
         local hpwr = UnitPower("player", Enum.PowerType.HolyPower or 9)
         if spell.holyPower.min and hpwr < spell.holyPower.min then return false end
         if spell.holyPower.max and hpwr > spell.holyPower.max then return false end
     end
+
+    -- Проверка врагов
     if spell.Enemies and enemiesCache < (spell.Enemies.count or 1) then return false end
+
+    -- Проверка баффа
     if spell.buff then
         local buffName = GetSpellInfo(spell.buff.id)
         local i = 1
+        local found = false
         while true do
-            local name = UnitBuff("player", i)
+            local name, _, _, stackCount, _, expirationTime = UnitBuff("player", i)
             if not name then break end
+
             if name == buffName then
-                if spell.buff.time then
-                    local _, _, _, _, _, expirationTime = UnitBuff("player", i)
-                    if expirationTime - GetTime() > spell.buff.time then return false end
+                found = true
+                stackCount = stackCount or 0
+                local remaining = expirationTime - GetTime()
+
+                local minStack = spell.buff.stacks and spell.buff.stacks.min or 0
+                local maxStack = spell.buff.stacks and spell.buff.stacks.max or 999
+
+                -- Условие: время меньше лимита и стаков в диапазоне
+                if remaining < (spell.buff.time or 0) and stackCount >= minStack and stackCount <= maxStack then
+                    return true
                 else
                     return false
                 end
             end
             i = i + 1
         end
+
+        -- Бафф не найден → разрешаем каст
+        if not found then return true end
     end
+
+    -- Кастомные условия
     if spell.customCondition and type(spell.customCondition) == "function" then
         if not spell.customCondition() then return false end
     end
+
     return true
 end
 
