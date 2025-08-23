@@ -7,8 +7,9 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 local RC = LibStub("LibRangeCheck-3.0")
 
 local spellQueue = {
-    { id = 84963, name = 'Дознание', userHealth = { min = 0, max = 100 }, userMana = { min = 0, max = 100 },  gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 15, stacks = { min = 0, max = 2 }}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png", toggle = "cooldowns" },
-    { id = 20271, name = 'Правосудие', gcd = true, priority = 3, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
+    { id = 31884, name = 'Гнев карателя',  gcd = false, priority = 1, range = 30, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1306.png",  toggle = "cooldowns" },
+    { id = 84963, name = 'Дознание', userHealth = { min = 0, max = 100 }, userMana = { min = 0, max = 100 },  gcd = true, priority = 1, range = 30, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 2, stacks = { min = 0, max = 2 }}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png", toggle = "cooldowns" },
+    { id = 20271, name = 'Правосудие', gcd = true, priority = 3, range = 30, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
     { id = 35395, name = 'Удар война Света', gcd = true, priority = 4, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
     { id = 879, name = 'Экзорцизм', gcd = true, priority = 5, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png"},
     { id = 85256, name = 'Вердикт храмовника', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
