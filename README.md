@@ -17,3 +17,4 @@ Skills:
                 }, 
         iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" 
     },
+    
