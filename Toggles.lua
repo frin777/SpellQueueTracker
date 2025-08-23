@@ -9,11 +9,12 @@ local function InitToggles()
         interrupt = false,
         cooldowns = false,
         defensives = false,
+        minorcds = false,
     }
 
     -- Создаем фрейм для тоглов
     local TogglesFrame = CreateFrame("Frame", "SQT_TogglesFrame", UIParent, "BackdropTemplate")
-    TogglesFrame:SetSize(200, 140)
+    TogglesFrame:SetSize(200, 180)
     TogglesFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     TogglesFrame:SetBackdrop({
         bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -48,6 +49,7 @@ local function InitToggles()
     local interruptBtn = CreateToggleButton("Interrupts", TogglesFrame, -10, "interrupt")
     local cooldownsBtn = CreateToggleButton("Cooldowns", TogglesFrame, -50, "cooldowns")
     local defensivesBtn = CreateToggleButton("Defensives", TogglesFrame, -90, "defensives")
+    local minorCdsBtn = CreateToggleButton("Minor Cds", TogglesFrame, -130, "minorcds")
 
     -- Сохраняем ссылки на кнопки для основного аддона
     SQT.Toggles = {
@@ -56,6 +58,7 @@ local function InitToggles()
             interrupt = interruptBtn,
             cooldowns = cooldownsBtn,
             defensives = defensivesBtn,
+            minorcds = minorCdsBtn,
         }
     }
 end
