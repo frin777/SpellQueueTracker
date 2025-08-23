@@ -16,5 +16,7 @@ Libs\Ace3\AceDB-3.0\AceDB-3.0.lua
 Libs\LibRangeCheck-3.0\LibRangeCheck-3.0.lua
 
 # === Подключаем твой код ===
+
 GCDOverlay.lua
 SpellQueueTracker.lua
+Toggles.lua

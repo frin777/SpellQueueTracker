@@ -7,10 +7,10 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 local RC = LibStub("LibRangeCheck-3.0")
 
 local spellQueue = {
-    { id = 84963, name = 'Дознание',  gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 15, stacks = { min = 0, max = 2 }}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png" },
+    { id = 84963, name = 'Дознание', userHealth = { min = 0, max = 100 }, userMana = { min = 0, max = 100 },  gcd = true, priority = 1, range = 30, minMana = 10, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 15, stacks = { min = 0, max = 2 }}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png", toggle = "cooldowns" },
     { id = 20271, name = 'Правосудие', gcd = true, priority = 3, range = 30, minMana = 10, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1066.png" },
     { id = 35395, name = 'Удар война Света', gcd = true, priority = 4, range = 1, holyPower = { min = 0, max = 4 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" },
-    { id = 879, name = 'Экзорцизм', gcd = true, priority = 5, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png" },
+    { id = 879, name = 'Экзорцизм', gcd = true, priority = 5, range = 30, minHP = 50, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png"},
     { id = 85256, name = 'Вердикт храмовника', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
     { id = 53385, name = 'Божественная буря', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
 }
@@ -19,7 +19,7 @@ local icons = {}
 local frame
 local enemiesCache = 0
 
-local defaults = { profile = { posX = 0, posY = 0 } }
+local defaults = { profile = { posX = 0, posY = 0, toggles = { interrupt = false, cooldowns = false, saves = false } } }
 
 -------------------------------
 -- Методы аддона
@@ -79,7 +79,7 @@ function SpellQueueTracker:OnEnable()
         if i == 1 then
             iconFrame:SetPoint("LEFT", frame, "LEFT", 1, 0)
         else
-            iconFrame:SetPoint("LEFT", icons[i-1], "RIGHT", 10, 0)
+            iconFrame:SetPoint("LEFT", icons[i-1], "RIGHT", 5, 0)
         end
 
         if spell.gcd == false then
@@ -144,17 +144,26 @@ end
 -------------------------------
 
 local function CheckConditions(spell)
+    local db = SpellQueueTracker.db
+    local toggles = db and db.profile.toggles or {}
+
+    -- Проверка состояния тогла только если оно есть
+    if spell.toggle ~= nil and toggles[spell.toggle] == false then
+        return false
+    end
+
     -- Проверка HP
-    if spell.minHP or spell.maxHP then
+    if spell.userHealth then
         local hp = (UnitHealth("player") / UnitHealthMax("player")) * 100
-        if spell.minHP and hp < spell.minHP then return false end
-        if spell.maxHP and hp > spell.maxHP then return false end
+        if spell.userHealth.min and hp < spell.userHealth.min then return false end
+        if spell.userHealth.max and hp > spell.userHealth.max then return false end
     end
 
     -- Проверка маны
-    if spell.minMana then
+    if spell.userMana then
         local mana = (UnitPower("player", 0) / UnitPowerMax("player", 0)) * 100
-        if mana < spell.minMana then return false end
+        if spell.userMana.min and mana < spell.userMana.min then return false end
+        if spell.userMana.max and mana > spell.userMana.max then return false end
     end
 
     -- Проверка Holy Power
@@ -184,7 +193,6 @@ local function CheckConditions(spell)
                 local minStack = spell.buff.stacks and spell.buff.stacks.min or 0
                 local maxStack = spell.buff.stacks and spell.buff.stacks.max or 999
 
-                -- Условие: время меньше лимита и стаков в диапазоне
                 if remaining < (spell.buff.time or 0) and stackCount >= minStack and stackCount <= maxStack then
                     return true
                 else
@@ -194,7 +202,6 @@ local function CheckConditions(spell)
             i = i + 1
         end
 
-        -- Бафф не найден → разрешаем каст
         if not found then return true end
     end
 
@@ -255,5 +262,4 @@ function SpellQueueTracker:UpdateQueue()
     if not firstSpell or not firstSpell.gcd then
         if GCDOverlay then GCDOverlay:Hide() end
     end
-  
 end
