@@ -1,4 +1,4 @@
-✅ Конфиг заклинаний (пример)
+**✅ Конфиг заклинаний (пример)
 
 
 local spellQueue = {
@@ -50,4 +50,4 @@ holyPower	table	{ min = X, max = Y } проверка ресурса Holy Power.
 buff	table	Проверка баффа: { id, time, stacks = { min, max } }.
 Enemies	table	{ count, range } проверка количества врагов.
 customCondition	function	Своя функция, должна возвращать true/false.
-iconPath	string	Путь к кастомной иконке.
+iconPath	string	Путь к кастомной иконке.**
