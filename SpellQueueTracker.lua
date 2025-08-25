@@ -13,10 +13,30 @@ local spellQueue = {
         name = 'Гнев карателя', 
         gcd = false, 
         priority = 1, 
-        range = 30, color = {163/255, 133/255, 12/255}, toggle = "cooldowns" },
-    { id = 84963, name = 'Дознание', userHealth = { min = 0, max = 100 }, userMana = { min = 0, max = 100 }, gcd = true, priority = 1, range = 30, holyPower = { min = 1, max = 7 }, buff = { id = 84963, time = 2, stacks = { min = 0, max = 2 }}, 
-    --iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1117.png", 
-    toggle = "minorcds" },
+        range = 30, 
+        color = {163/255, 133/255, 12/255}, 
+        toggle = "cooldowns" 
+    },
+    { 
+        id = 105809, 
+        name = 'Святой каратель', 
+        gcd = false, 
+        priority = 1, 
+        range = 30, 
+        color = {163/255, 133/255, 120/255}, 
+        toggle = "cooldowns" 
+    },
+    { 
+        id = 84963, 
+        name = 'Дознание', 
+        userHealth = { min = 0, max = 100 }, 
+        userMana = { min = 0, max = 100 }, 
+        gcd = true, priority = 1, range = 30, 
+        holyPower = { min = 1, max = 7 }, 
+        buff = { id = 84963, time = 2, stacks = { min = 0, max = 2 }}, 
+        color = {239/255, 235/255, 62/255}, 
+        toggle = "minorcds" 
+    },
     { 
         id = 20271, 
         name = 'Правосудие', 
@@ -32,12 +52,40 @@ local spellQueue = {
         priority = 4, 
         range = 1, 
         holyPower = { min = 0, max = 4 }, 
-        color = {0, 1, 0}, 
+        color = {0/255, 22/255, 199/255}, 
         iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" 
     },
-    { id = 879, name = 'Экзорцизм', gcd = true, priority = 5, range = 30, minHP = 50, color = {1, 0, 1}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png"},
-    { id = 85256, name = 'Вердикт храмовника', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, color = {0, 1, 1}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" },
-    { id = 53385, name = 'Божественная буря', gcd = true, priority = 2, range = 1, holyPower = { min = 3 }, Enemies = { count = 2, range = 8 }, color = {1, 0, 0}, iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" },
+    { 
+        id = 879, 
+        name = 'Экзорцизм', 
+        gcd = true, 
+        priority = 5, 
+        range = 30, 
+        minHP = 50, 
+        color = {207/255, 158/255, 215/255}, 
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png"
+    },
+    { 
+        id = 85256, 
+        name = 'Вердикт храмовника', 
+        gcd = true, 
+        priority = 2, 
+        range = 1, 
+        holyPower = { min = 3 }, 
+        color = {88/255, 64/255, 47/255},  
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" 
+    },
+    { 
+        id = 53385, 
+        name = 'Божественная буря', 
+        gcd = true, 
+        priority = 2, 
+        range = 1, 
+        holyPower = { min = 3 }, 
+        Enemies = { count = 2, range = 8 }, 
+        color = {181/255, 155/255, 99/255}, 
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" 
+    },
 }
 
 local icons = {}
