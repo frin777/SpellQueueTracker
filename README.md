@@ -19,10 +19,11 @@ Skills:
     
 
 Toggles:
+
     /toggleinterrupt → переключает Interrupts
 
     /togglecooldowns → переключает Cooldowns
 
     /toggledefensives → переключает Defensives
-    
+
     /toggleminorcds → переключает Minor CDs
