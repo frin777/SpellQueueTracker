@@ -6,6 +6,7 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 
 local RC = LibStub("LibRangeCheck-3.0")
 
+
 -- Конфигурация спеллов
 local spellQueue = {
     { 
@@ -93,6 +94,7 @@ local frame
 local enemiesCache = 0
 
 local defaults = { profile = { posX = 0, posY = 0, toggles = { interrupt = false, cooldowns = false, saves = false } } }
+
 
 -------------------------------
 -- Методы аддона

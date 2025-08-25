@@ -10,7 +10,7 @@ local function InitToggles()
         minorcds = false,
     }
 
-    -- Создаём основной фрейм
+    -- Основной фрейм
     local TogglesFrame = CreateFrame("Frame", "SQT_TogglesFrame", UIParent, "BackdropTemplate")
     TogglesFrame:SetSize(200, 180)
     TogglesFrame:SetPoint("CENTER")
@@ -27,37 +27,35 @@ local function InitToggles()
     TogglesFrame:SetScript("OnDragStart", TogglesFrame.StartMoving)
     TogglesFrame:SetScript("OnDragStop", TogglesFrame.StopMovingOrSizing)
 
-    -- ✅ Создаём текстовое уведомление по центру экрана
+    -- Текстовое уведомление
     local alertFrame = CreateFrame("Frame", nil, UIParent)
     alertFrame:SetSize(400, 50)
     alertFrame:SetPoint("CENTER", 0, 200)
-
     local alertText = alertFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     alertText:SetPoint("CENTER")
     alertText:Hide()
+    local alertTimer
 
-    local alertTimer -- ссылка на активный таймер
-
-    -- Функция для показа текста
     local function ShowAlert(name, state)
-        local color = state == "ON" and "|cff00ff00" or "|cffff0000" -- зелёный или красный
+        local color = state == "ON" and "|cff00ff00" or "|cffff0000"
         alertText:SetText(name .. " : " .. color .. state .. "|r")
         alertText:Show()
-
-        -- Если уже есть таймер, отменяем его
-        if alertTimer then
-            alertTimer:Cancel()
-        end
-
-        -- Создаём новый таймер на скрытие
+        if alertTimer then alertTimer:Cancel() end
         alertTimer = C_Timer.NewTimer(2, function()
             alertText:Hide()
             alertTimer = nil
         end)
     end
 
-    -- Функция создания кнопки
-    local function CreateToggleButton(name, key, yOffset)
+    -- Общая функция переключения
+    local function ToggleOption(key, name, updater)
+        db.profile.toggles[key] = not db.profile.toggles[key]
+        if updater then updater() end
+        ShowAlert(name, db.profile.toggles[key] and "ON" or "OFF")
+    end
+
+    -- Функция, которая создаёт кнопку и slash-команду сразу
+    local function RegisterToggle(name, key, yOffset)
         local btn = CreateFrame("Button", nil, TogglesFrame, "UIPanelButtonTemplate")
         btn:SetSize(180, 30)
         btn:SetPoint("TOP", 0, yOffset)
@@ -65,23 +63,20 @@ local function InitToggles()
         local function UpdateText()
             btn:SetText(name .. ": " .. (db.profile.toggles[key] and "ON" or "OFF"))
         end
-
         UpdateText()
-        btn:SetScript("OnClick", function()
-            db.profile.toggles[key] = not db.profile.toggles[key]
-            UpdateText()
-            local state = db.profile.toggles[key] and "ON" or "OFF"
-            print(name .. " toggled " .. state)
 
-            -- ✅ Показать сообщение по центру экрана с цветом
-            ShowAlert(name, state)
-        end)
+        btn:SetScript("OnClick", function() ToggleOption(key, name, UpdateText) end)
+
+        -- Slash-команда
+        _G["SLASH_" .. key:upper() .. "1"] = "/toggle" .. key
+        SlashCmdList[key:upper()] = function()
+            ToggleOption(key, name, UpdateText)
+        end
 
         return btn
     end
 
-    -- Создаём кнопки
-    local buttons = {}
+    -- Создаём все тоглы через один список
     local toggles = {
         {"Interrupts", "interrupt", -10},
         {"Cooldowns", "cooldowns", -50},
@@ -89,17 +84,16 @@ local function InitToggles()
         {"Minor CDs", "minorcds", -130}
     }
 
+    local buttons = {}
     for _, toggle in ipairs(toggles) do
-        buttons[toggle[2]] = CreateToggleButton(toggle[1], toggle[2], toggle[3])
+        local name, key, yOffset = unpack(toggle)
+        buttons[key] = RegisterToggle(name, key, yOffset)
     end
 
-    SQT.Toggles = {
-        frame = TogglesFrame,
-        buttons = buttons
-    }
+    SQT.Toggles = { frame = TogglesFrame, buttons = buttons }
 end
 
--- Ждём загрузки аддона SpellQueueTracker
+-- Ждём загрузки аддона
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event, addonName)
