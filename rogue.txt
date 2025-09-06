@@ -1,0 +1,63 @@
+-- Конфигурация спеллов
+local spellQueue = {
+    { 
+        id = 1752, 
+        name = 'Коварный удар', 
+        gcd = true, 
+        priority = 4, 
+        userPower = { min = 40, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
+        range = 2, 
+        --comboPoints = { min = 1 }, -- минимум 3 очка серии
+        --combat = true, -- только в бою
+        color = {163/255, 133/255, 12/255}
+    },
+
+    { 
+        id = 2098, 
+        name = 'Потрошение', 
+        gcd = true, 
+        priority = 3, 
+        userPower = { min = 35, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
+        range = 2, 
+        comboPoints = { min = 1 }, -- минимум 1 очка серии
+        --combat = true, -- только в бою
+        color = {111/255, 111/255, 111/255}
+    },
+
+
+    { 
+        id = 1784, 
+        name = 'Незаметность', 
+        gcd = true, 
+        priority = 2, 
+        combat = false, -- только в бою
+        color = {10/255, 10/255, 222/255},
+        buff_aura = { id = 1784, present = false},
+    },
+
+    { 
+        id = 8676, 
+        name = 'Внезапный удар', 
+        gcd = true, 
+        priority = 1, 
+        range = 2, 
+        userPower = { min = 60, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
+        color = {25/255, 25/255, 222/255},
+        buff_aura = { id = 1784, present = true},
+    },
+    { 
+        id = 6603, -- автоатака
+        name = 'Автоатака', 
+        gcd = false, 
+        priority = 10, -- низкий приоритет
+        targetExists = true, 
+        range = 2, 
+        color = {0.8, 0.2, 0.2},
+    },
+    
+    
+
+}

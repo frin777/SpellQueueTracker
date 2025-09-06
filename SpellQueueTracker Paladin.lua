@@ -6,68 +6,86 @@ local SpellQueueTracker = LibStub("AceAddon-3.0"):NewAddon(
 
 local RC = LibStub("LibRangeCheck-3.0")
 
+
 -- Конфигурация спеллов
 local spellQueue = {
     { 
-        id = 1464, 
-        name = 'Мощный удар', 
-        gcd = true, 
-        priority = 4, 
-        userPower = { min = 25, type = 1 },
-        targetExists = true,
-        range = 2, 
-        color = {173/255, 173/255, 27/255}
+        id = 31884, 
+        name = 'Гнев карателя', 
+        gcd = false, 
+        priority = 1, 
+        range = 30, 
+        color = {163/255, 133/255, 12/255}, 
+        toggle = "cooldowns" 
     },
     { 
-        id = 78, 
-        name = 'Удар Героя', 
-        gcd = true, 
-        priority = 4, 
-        userPower = { min = 30, type = 1 },
-        targetExists = true,
-        range = 2, 
-        color = {36/255, 27/255, 15/255}
+        id = 105809, 
+        name = 'Святой каратель', 
+        gcd = false, 
+        priority = 1, 
+        range = 30, 
+        color = {163/255, 133/255, 120/255}, 
+        toggle = "cooldowns" 
     },
     { 
-        id = 12294, 
-        name = 'Смертельный удар', 
+        id = 84963, 
+        name = 'Дознание', 
+        userHealth = { min = 0, max = 100 }, 
+        userMana = { min = 0, max = 100 }, 
+        gcd = true, priority = 1, range = 30, 
+        holyPower = { min = 1, max = 7 }, 
+        buff = { id = 84963, time = 2, stacks = { min = 0, max = 2 }}, 
+        color = {239/255, 235/255, 62/255}, 
+        toggle = "minorcds" 
+    },
+    { 
+        id = 20271, 
+        name = 'Правосудие', 
         gcd = true, 
         priority = 3, 
-        targetExists = true,
-        range = 2, 
-        color = {191/255, 109/255, 202/255}
+        range = 30,
+        color = {245/255, 58/255, 72/255}
     },
     { 
-        id = 34428, 
-        name = 'Победный раж', 
+        id = 35395, 
+        name = 'Удар война Света', 
+        gcd = true, 
+        priority = 4, 
+        range = 1, 
+        holyPower = { min = 0, max = 4 }, 
+        color = {0/255, 22/255, 199/255}, 
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1065.png" 
+    },
+    { 
+        id = 879, 
+        name = 'Экзорцизм', 
+        gcd = true, 
+        priority = 5, 
+        range = 30, 
+        minHP = 50, 
+        color = {207/255, 158/255, 215/255}, 
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1078.png"
+    },
+    { 
+        id = 85256, 
+        name = 'Вердикт храмовника', 
         gcd = true, 
         priority = 2, 
-        targetExists = true,
-        range = 2, 
-        buff = { id = 32216, time = 5, present = true },
-        color = {105/255, 82/255, 103/255}
+        range = 1, 
+        holyPower = { min = 3 }, 
+        color = {88/255, 64/255, 47/255},  
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1067.png" 
     },
-
-
     { 
-        id = 5308, 
-        name = 'Казнь', 
+        id = 53385, 
+        name = 'Божественная буря', 
         gcd = true, 
-        priority = 1, 
-        targetExists = true,
-        range = 2, 
-        userPower = { min = 30, type = 1 },
-        color = {148/255, 65/255, 117/255},
-        targetHealth = { min = 1, max = 20 } -- проверка: здоровье цели от 20% до 80%
-    },
-    { 
-        id = 6603, -- автоатака
-        name = 'Автоатака', 
-        gcd = false, 
-        priority = 100, -- низкий приоритет
-        targetExists = true, 
-        range = 2, 
-        color = {101/255, 221/255, 24/255},
+        priority = 2, 
+        range = 1, 
+        holyPower = { min = 3 }, 
+        Enemies = { count = 2, range = 8 }, 
+        color = {181/255, 155/255, 99/255}, 
+        iconPath = "Interface\\AddOns\\SpellQueueTracker\\Icons\\Paladin\\1077.png" 
     },
 }
 
@@ -76,6 +94,7 @@ local frame
 local enemiesCache = 0
 
 local defaults = { profile = { posX = 0, posY = 0, toggles = { interrupt = false, cooldowns = false, saves = false } } }
+
 
 -------------------------------
 -- Методы аддона
@@ -113,13 +132,12 @@ function SpellQueueTracker:OnEnable()
     frame:EnableMouse(true)
     frame:SetClampedToScreen(true)
     frame:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
         edgeFile = "Interface\\Buttons\\WHITE8x8",
         tile = true,
         edgeSize = 1,
         insets = { left = 1, right = 1, top = 1, bottom = 1 }
     })
-    frame:SetBackdropColor(0, 0, 0, 1)
     frame:SetBackdropBorderColor(0, 0, 0, 1)
     frame:SetFrameLevel(10)
 
@@ -211,66 +229,12 @@ end
 -- Условия спеллов
 -------------------------------
 
-local function CheckBuff(unit, buffConfig)
-    local buffName = GetSpellInfo(buffConfig.id)
-    local i = 1
-    local found = false
-
-    while true do
-        local name, _, _, stackCount, _, expirationTime = UnitBuff(unit, i)
-        if not name then break end
-
-        if name == buffName then
-            found = true
-            stackCount = stackCount or 0
-            local remaining = expirationTime and (expirationTime - GetTime()) or 0
-
-            local minStack = buffConfig.stacks and buffConfig.stacks.min or 0
-            local maxStack = buffConfig.stacks and buffConfig.stacks.max or 999
-            local timeCheck = buffConfig.time or 0
-
-            if buffConfig.present then
-                return remaining >= timeCheck and stackCount >= minStack and stackCount <= maxStack
-            else
-                return remaining < timeCheck or stackCount < minStack or stackCount > maxStack
-            end
-        end
-        i = i + 1
-    end
-
-    if not found then
-        return buffConfig.present == false
-    end
-
-    return false
-end
-
 local function CheckConditions(spell)
     local db = SpellQueueTracker.db
     local toggles = db and db.profile.toggles or {}
 
     if spell.toggle ~= nil and toggles[spell.toggle] == false then
         return false
-    end
-
-    if spell.id == 6603 then
-        if IsCurrentSpell(6603) then
-            return false
-        end
-    end
-
-    if spell.targetExists then
-        if not UnitExists("target") or UnitIsDead("target") or not UnitCanAttack("player", "target") then
-            return false
-        end
-    end
-
-    if spell.combat ~= nil then
-        if spell.combat and not UnitAffectingCombat("player") then
-            return false
-        elseif spell.combat == false and UnitAffectingCombat("player") then
-            return false
-        end
     end
 
     if spell.userHealth then
@@ -285,28 +249,6 @@ local function CheckConditions(spell)
         if spell.userMana.max and mana > spell.userMana.max then return false end
     end
 
-    if spell.userPower then
-        local powerType = spell.userPower.type or 3
-        local power = UnitPower("player", powerType)
-        if spell.userPower.min and power < spell.userPower.min then return false end
-        if spell.userPower.max and power > spell.userPower.max then return false end
-    end
-
-    if spell.comboPoints then
-        local target = "target"
-        if not UnitExists(target) or UnitIsDead(target) or not UnitCanAttack("player", target) then
-            return false
-        end
-    
-        local cp = GetComboPoints("player", target)
-        local minCP = spell.comboPoints.min or 0
-        local maxCP = spell.comboPoints.max or 999
-    
-        if cp < minCP or cp > maxCP then
-            return false
-        end
-    end
-    
     if spell.holyPower then
         local hpwr = UnitPower("player", Enum.PowerType.HolyPower or 9)
         if spell.holyPower.min and hpwr < spell.holyPower.min then return false end
@@ -315,15 +257,32 @@ local function CheckConditions(spell)
 
     if spell.Enemies and enemiesCache < (spell.Enemies.count or 1) then return false end
 
-    if spell.buff and not CheckBuff("player", spell.buff) then
-        return false
-    end
+    if spell.buff then
+        local buffName = GetSpellInfo(spell.buff.id)
+        local i = 1
+        local found = false
+        while true do
+            local name, _, _, stackCount, _, expirationTime = UnitBuff("player", i)
+            if not name then break end
 
-    -- Новая проверка здоровья цели
-    if spell.targetHealth and UnitExists("target") and not UnitIsDead("target") then
-        local thp = (UnitHealth("target") / UnitHealthMax("target")) * 100
-        if spell.targetHealth.min and thp < spell.targetHealth.min then return false end
-        if spell.targetHealth.max and thp > spell.targetHealth.max then return false end
+            if name == buffName then
+                found = true
+                stackCount = stackCount or 0
+                local remaining = expirationTime - GetTime()
+
+                local minStack = spell.buff.stacks and spell.buff.stacks.min or 0
+                local maxStack = spell.buff.stacks and spell.buff.stacks.max or 999
+
+                if remaining < (spell.buff.time or 0) and stackCount >= minStack and stackCount <= maxStack then
+                    return true
+                else
+                    return false
+                end
+            end
+            i = i + 1
+        end
+
+        if not found then return true end
     end
 
     if spell.customCondition and type(spell.customCondition) == "function" then
@@ -333,7 +292,6 @@ local function CheckConditions(spell)
     return true
 end
 
-
 -------------------------------
 -- Обновление очереди
 -------------------------------
@@ -342,6 +300,7 @@ function SpellQueueTracker:UpdateQueue()
     local available = {}
     local target = UnitExists("target") and not UnitIsDead("target") and UnitCanAttack("player", "target") and "target" or nil
 
+    -- Формируем список доступных спеллов
     for _, spell in ipairs(spellQueue) do
         local _, _, defaultTex = GetSpellInfo(spell.id)
         local start, duration = GetSpellCooldown(spell.id)
@@ -366,6 +325,7 @@ function SpellQueueTracker:UpdateQueue()
 
     table.sort(available, function(a, b) return a.prio < b.prio end)
 
+    -- Обновляем иконки
     for i, iconFrame in ipairs(icons) do
         local spell = available[i]
         if spell then
@@ -377,6 +337,7 @@ function SpellQueueTracker:UpdateQueue()
                 spell.custom and 1 or 0.92
             )
 
+            -- Безопасная установка цвета полоски
             if iconFrame.bar then
                 local colorSet = false
                 for _, s in ipairs(spellQueue) do
@@ -394,6 +355,7 @@ function SpellQueueTracker:UpdateQueue()
 
             iconFrame:Show()
 
+            -- Управление GCD overlay
             if i == 1 and spell.gcd and GCDOverlay then
                 GCDOverlay:SetParent(iconFrame)
                 GCDOverlay:SetPoint("CENTER", iconFrame, "CENTER", 0, 0)
