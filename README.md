@@ -30,6 +30,7 @@ Toggles:
 
 
 
-проверка баффа
+проверка баффа:
+
 buff = { id = 32216, time = 5, stacks = { min = 1, max = 3 }, present = true },  -- бафф должен быть
 buff = { id = 1784, time = 0, present = false },                                 -- баффа быть не должно
