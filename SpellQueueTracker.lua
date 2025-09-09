@@ -9,56 +9,52 @@ local RC = LibStub("LibRangeCheck-3.0")
 -- Конфигурация спеллов
 local spellQueue = {
     { 
-        id = 1464, 
-        name = 'Мощный удар', 
+        id = 1752, 
+        name = 'Коварный удар', 
         gcd = true, 
         priority = 4, 
-        userPower = { min = 25, type = 1 },
-        targetExists = true,
+        userPower = { min = 40, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
         range = 2, 
-        color = {173/255, 173/255, 27/255}
+        --comboPoints = { min = 1 }, -- минимум 3 очка серии
+        --combat = true, -- только в бою
+        color = {163/255, 133/255, 12/255}
     },
+
     { 
-        id = 78, 
-        name = 'Удар Героя', 
-        gcd = true, 
-        priority = 4, 
-        userPower = { min = 30, type = 1 },
-        targetExists = true,
-        range = 2, 
-        color = {36/255, 27/255, 15/255}
-    },
-    { 
-        id = 12294, 
-        name = 'Смертельный удар', 
+        id = 2098, 
+        name = 'Потрошение', 
         gcd = true, 
         priority = 3, 
-        targetExists = true,
+        userPower = { min = 35, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
         range = 2, 
-        color = {191/255, 109/255, 202/255}
+        comboPoints = { min = 1 }, -- минимум 1 очка серии
+        --combat = true, -- только в бою
+        color = {111/255, 111/255, 111/255}
     },
+
+
     { 
-        id = 34428, 
-        name = 'Победный раж', 
+        id = 1784, 
+        name = 'Незаметность', 
         gcd = true, 
         priority = 2, 
-        targetExists = true,
-        range = 2, 
-        buff = { id = 32216, time = 5, present = true },
-        color = {105/255, 82/255, 103/255}
+        combat = false, -- только в бою
+        color = {10/255, 10/255, 222/255},
+        buff = { id = 1784, present = false, aura = true },
     },
 
-
     { 
-        id = 5308, 
-        name = 'Казнь', 
+        id = 8676, 
+        name = 'Внезапный удар', 
         gcd = true, 
         priority = 1, 
-        targetExists = true,
         range = 2, 
-        userPower = { min = 30, type = 1 },
-        color = {148/255, 65/255, 117/255},
-        targetHealth = { min = 1, max = 20 } -- проверка: здоровье цели от 20% до 80%
+        userPower = { min = 60, type = 3 }, -- энергия
+        targetExists = true, -- проверка цели
+        color = {25/255, 25/255, 222/255},
+        buff = { id = 1784, present = true, aura = true},
     },
     { 
         id = 6603, -- автоатака
@@ -69,13 +65,16 @@ local spellQueue = {
         range = 2, 
         color = {101/255, 221/255, 24/255},
     },
+    
+    
+
 }
 
 local icons = {}
 local frame
 local enemiesCache = 0
 
-local defaults = { profile = { posX = 0, posY = 0, toggles = { interrupt = false, cooldowns = false, saves = false } } }
+local defaults = { profile = {bgAlpha = 0, posX = 0, posY = 0, toggles = { interrupt = false, cooldowns = false, saves = false } } }
 
 -------------------------------
 -- Методы аддона
@@ -94,6 +93,7 @@ function SpellQueueTracker:RestorePosition()
     local relativePoint = self.db.profile.relativePoint or "CENTER"
     local x = self.db.profile.posX or 0
     local y = self.db.profile.posY or 0
+    local bgAlpha = self.db.profile.bgAlpha or 0
     frame:ClearAllPoints()
     frame:SetPoint(point, UIParent, relativePoint, x, y)
 end
@@ -119,7 +119,9 @@ function SpellQueueTracker:OnEnable()
         edgeSize = 1,
         insets = { left = 1, right = 1, top = 1, bottom = 1 }
     })
-    frame:SetBackdropColor(0, 0, 0, 1)
+    local bgAlpha = self.db and self.db.profile.bgAlpha or 0.5
+    frame:SetBackdropColor(0, 0, 0, bgAlpha)
+
     frame:SetBackdropBorderColor(0, 0, 0, 1)
     frame:SetFrameLevel(10)
 
@@ -194,17 +196,31 @@ end
 -- Враги
 -------------------------------
 
+local enemiesCache = {}
+
 function SpellQueueTracker:UpdateEnemiesCache()
-    local count = 0
+    local cache = {}
     local nameplates = C_NamePlate.GetNamePlates()
+
     for i = 1, #nameplates do
         local unitID = nameplates[i].namePlateUnitToken
         if UnitExists(unitID) and UnitCanAttack("player", unitID) and not UnitIsDead(unitID) then
-            local dist = RC:GetRange(unitID, 1)
-            if dist and dist <= 8 then count = count + 1 end
+            local minRange, maxRange = RC:GetRange(unitID)
+            if maxRange then
+                -- Считаем юнита во всех радиусах >= maxRange
+                for r = maxRange, 100 do
+                    cache[r] = (cache[r] or 0) + 1
+                end
+            elseif minRange then
+                -- fallback: если есть только minRange
+                for r = minRange, 100 do
+                    cache[r] = (cache[r] or 0) + 1
+                end
+            end
         end
     end
-    enemiesCache = count
+
+    enemiesCache = cache
 end
 
 -------------------------------
@@ -213,11 +229,16 @@ end
 
 local function CheckBuff(unit, buffConfig)
     local buffName = GetSpellInfo(buffConfig.id)
+    if not buffName then return false end
+
     local i = 1
     local found = false
 
+    -- Выбираем источник: обычные баффы или все ауры
+    local unitAuraFunc = buffConfig.aura and UnitAura or UnitBuff
+
     while true do
-        local name, _, _, stackCount, _, expirationTime = UnitBuff(unit, i)
+        local name, _, _, stackCount, _, expirationTime = unitAuraFunc(unit, i)
         if not name then break end
 
         if name == buffName then
@@ -229,10 +250,19 @@ local function CheckBuff(unit, buffConfig)
             local maxStack = buffConfig.stacks and buffConfig.stacks.max or 999
             local timeCheck = buffConfig.time or 0
 
-            if buffConfig.present then
-                return remaining >= timeCheck and stackCount >= minStack and stackCount <= maxStack
+            -- Если aura=true → игнорируем время
+            if buffConfig.aura then
+                if buffConfig.present then
+                    return stackCount >= minStack and stackCount <= maxStack
+                else
+                    return stackCount < minStack or stackCount > maxStack
+                end
             else
-                return remaining < timeCheck or stackCount < minStack or stackCount > maxStack
+                if buffConfig.present then
+                    return remaining >= timeCheck and stackCount >= minStack and stackCount <= maxStack
+                else
+                    return remaining < timeCheck or stackCount < minStack or stackCount > maxStack
+                end
             end
         end
         i = i + 1
@@ -244,6 +274,10 @@ local function CheckBuff(unit, buffConfig)
 
     return false
 end
+
+-------------------------------
+-- Условия спеллов
+-------------------------------
 
 local function CheckConditions(spell)
     local db = SpellQueueTracker.db
@@ -313,13 +347,18 @@ local function CheckConditions(spell)
         if spell.holyPower.max and hpwr > spell.holyPower.max then return false end
     end
 
-    if spell.Enemies and enemiesCache < (spell.Enemies.count or 1) then return false end
+    -- ✅ Проверка врагов с учётом радиуса
+    if spell.Enemies then
+        local neededCount = spell.Enemies.count or 1
+        local neededRange = spell.Enemies.range or 8
+        local inRange = enemiesCache[neededRange] or 0
+        if inRange < neededCount then return false end
+    end
 
     if spell.buff and not CheckBuff("player", spell.buff) then
         return false
     end
 
-    -- Новая проверка здоровья цели
     if spell.targetHealth and UnitExists("target") and not UnitIsDead("target") then
         local thp = (UnitHealth("target") / UnitHealthMax("target")) * 100
         if spell.targetHealth.min and thp < spell.targetHealth.min then return false end
